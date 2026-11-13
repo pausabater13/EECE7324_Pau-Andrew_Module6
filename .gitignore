@@ -1,11 +1,11 @@
 # Old version: kept only locally.
-module5-old-version/
+module6-old-version/
 
 # DSO captures (~16 MB each): kept only locally.
-Scripts_Module5/captures/
+Scripts_Module6/captures/
 
 # Assignment handout.
-Laboratory Assignment 4 (Module 5).pdf
+Laboratory Assignment 5 (Module 6).pdf
 
 # LaTeX build files.
 *.aux

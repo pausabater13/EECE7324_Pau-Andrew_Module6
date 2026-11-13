@@ -50,7 +50,7 @@
     literate={°}{{$^\circ$}}1, % listings cannot read UTF-8 characters directly
 }
 
-\title{EECE7324: Laboratory Assignment 4 (Module 5)}
+\title{EECE7324: Laboratory Assignment 5 (Module 6)}
 \author{Andrew Benincasa and Pau Sabater}
 \date{November 2026}
 
@@ -62,383 +62,191 @@
 \maketitle
 
 %=====================================================================
-\section*{Part A: M-PSK}
+\section*{Part A: Filtering}
 %=====================================================================
 \subsection*{Transmitter}
+Nothing changes in the transmitter: the noise filtering is done at the receiver. We reuse the Module 5 waveforms (\missing{list of \texttt{.WAVEFORM} files used: 16/32-PSK and 16/32-QAM, Gray}).
+
+\subsection*{Receiver}
 \begin{enumerate}
-    \item We started from the new scripts provided with this module instead of reusing our Module 4 versions.
+    \item \missing{position of the filtering block in \texttt{receiverSC.m} (section \texttt{Noise Filtering}, before \texttt{frameSynchronization()}) and why we filter before synchronization.}
 
-    \item Yes. The number of symbols is fixed, and the script takes \texttt{nDataSymbols*log2(M)} bits from \texttt{bits} (\cref{lst:tx-bits}), so a higher $M$ needs more bits. \texttt{bits} only has 2184, so with 300 data symbols it works up to $M = 128$ (2100 bits) and fails for $M = 256$ (2400 bits).
+    \item \missing{parameters of \texttt{bandpass()}~\cite{bandpass} and our filter: passband from $f_c$ and $B = (1+\beta)R_s$, and the new line 55.}
 
-\lstinputlisting[
-    caption={Number of symbols and bits in \texttt{transmitterSC.m}.},
-    label={lst:tx-bits},
-    rangeprefix=, rangesuffix=, includerangemarker=true,
-    linerange={nPilotSymbols-60;,nDataSymbols-60*5;,bitsPilot-log2(M));,bitsData-log2(M));},
-]{Scripts_Module5/transmitterSC.m}
-
-    \item \texttt{pskmod()} turns the bits into M-PSK symbols~\cite{pskmod}. It is called as \texttt{pskmod(bits, M, 0, "gray", InputType="bit")}: the bits, the modulation order, the phase offset in radians, the symbol order, and \texttt{InputType="bit"}, which tells it to take the bits in groups of $\log_2 M$, one group per symbol. The output is a column of complex symbols on the unit circle, $s_m = e^{j(2\pi m/M + \phi)}$ with $m = 0, \dots, M-1$, one per group of bits.
-
-    \item Yes, it uses \texttt{"gray"}, which is also the default. To turn it off we pass \texttt{"bin"} instead (Step 5), and the receiver has to do the same.
-
-    \item
-    \begin{enumerate}[label=\alph*)]
-        \item We added the symbol order as a parameter \texttt{symOrder} of \texttt{transmitterSC.m} and as an optional fourth input of \texttt{symbolMapping.m}, \texttt{"gray"} by default so the header call still works, and put it in the file name (\cref{lst:symorder}). This gave the files \texttt{gray/$M$psk\_25SR\_gray.WAVEFORM} and \texttt{bin/$M$psk\_25SR\_bin.WAVEFORM} for $M = 2, 4, 8, 16, 32$.
-
-\begin{lstlisting}[caption={Our changes to \texttt{transmitterSC.m} and \texttt{symbolMapping.m}.}, label={lst:symorder}]
-% transmitterSC.m
-M = 2;             % Modulation order.
-modScheme = "psk"; % Modulation scheme ("psk" or "qam").
-symOrder = "gray"; % Symbol order ("gray" or "bin").
-...
-symbolsPilot = symbolMapping(bitsPilot, M, modScheme, symOrder);
-...
-symbolsData = symbolMapping(bitsData, M, modScheme, symOrder);
-...
-scatterplot(symbolsData); % Generated constellation.
-title(sprintf("%d-%s (%s)", M, upper(modScheme), symOrder));
-...
-waveformFormatConversion(sFrame, sprintf("%d%s_%gSR_%s", M, modScheme, Rs / 1e6, symOrder));
-
-% symbolMapping.m
-function symbols = symbolMapping(bits, M, modScheme, symOrder)
-    if nargin < 4
-        symOrder = "gray";
-    end
-    ...
-        symbols = pskmod(bits, M, 0, symOrder, InputType="bit");
+\begin{lstlisting}[caption={Our noise filter in \texttt{receiverSC.m}.}, label={lst:bandpass}]
+yFiltered = NaN; % MISSING
 \end{lstlisting}
 
-        \item We show each constellation in \cref{fig:tx-psk} utilizing \texttt{pskmod()}, which plots each ideal constellation with its bits (option \texttt{PlotConstellation=true}), and also with the generated bits plotted on top. Gray and binary look the same given that only the bits of each point change.
-        \begin{enumerate}[label=\roman*.]
-            \item The points get closer together: they are $360^\circ/M$ apart, only $11.25^\circ$ for 32-PSK.
-            \item Yes. With the same power, less noise or phase error is enough to move a symbol to its neighbor: for 32-PSK, $5.6^\circ$ is already a wrong symbol.
-            \item Higher SNR (more power or a shorter distance), a lower $M$ when the channel is bad, or QAM, which also uses the amplitude and spreads the points over the whole I/Q plane (Part B).
-        \end{enumerate}
-    \end{enumerate}
+    \item \missing{effect of the filter on the power spectrum, how we tuned the parameters, and the final filter details (passband, steepness, stopband attenuation).}
 
     \begin{figure}[H]
         \centering
-        \fig{\linewidth}{figures/tx_psk.pdf}
-        \caption{Generated M-PSK data constellations with Gray (top) and binary (bottom) order: ideal points with their bits, drawn by \texttt{pskmod()} (red), and the symbols generated by \texttt{transmitterSC.m} (blue), which fall exactly on them. For 32-PSK the bit labels are too close together to read.}
-        \label{fig:tx-psk}
+        \fig{\linewidth}{figures/A/psd_filter.pdf}
+        \caption{Power spectrum before and after the bandpass filter. \missing{capture}}
+        \label{fig:psd-filter}
     \end{figure}
 
-    \item As in Module 4, we set the SG to 2.4 GHz and 10 dBm, with Dual Arb ON at 75 MHz. On the DSO (Channel 1, 50 $\Omega$, DC coupling) we used 4 $\mu$s/div to look at the signal: the screen shows 40 $\mu$s, more than two frames of 16.32 $\mu$s, with three short dips per frame at the boundaries between header, pilot and data. We checked the spectrum with an FFT at 2.4 GHz and saved $10^6$ samples at 20 GSa/s (50 $\mu$s, enough for two complete frames). The wired captures were saved at 10 ns/div by mistake, but this does not matter: the saved file depends only on the sample rate and the number of points, so they have 50 $\mu$s at 20 GSa/s. All the parameters of Steps 10 to 14 are computed from these files, not from the screen.
-    \begin{enumerate}[label=\alph*)]
-        \item Wired: a coaxial cable from the SG RF Out to Channel 1, at 500 mV/div. The received power is about 8 dBm in the signal band, so for this case we expect a high SNR and no errors.
-        \item Wireless: one antenna on the SG and one on Channel 1, pointing the same way (\cref{fig:setup-wireless}). In Module 4 the errors started at about 114 cm, so we first tried 1.1 m, where only 32-PSK had a few errors, and then 1.5 m, which is the set we use below. We did not note the vertical scale; from the voltage step of the samples it was about 7 mV/div. At 1.5 m the received power is about $-38$ dBm, 46 dB less than with the cable.
-    \end{enumerate}
-
-    \begin{figure}[H]
-        \centering
-        \fig{\linewidth}{figures-empty/A/wirelesssetup.JPG}
-        \caption{Wireless setup at 1.5 m: SG with one antenna on its RF Out, and the second antenna connected to Channel 1 of the DSO.}
-        \label{fig:setup-wireless}
-    \end{figure}
-
-    %\begin{figure}[H]
-        %\centering
-        %\begin{subfigure}{0.48\linewidth}\centering\missingfig{\linewidth}{wired 16-PSK Gray at 4 $\mu$s/div}\caption{Wired (500 mV/div).}\end{subfigure}\hfill
-        %\begin{subfigure}{0.48\linewidth}\centering\missingfig{\linewidth}{wireless 16-PSK Gray at 4 $\mu$s/div}\caption{Wireless.}\end{subfigure}
-        %\caption{DSO captures of 16-PSK with Gray coding at 4 $\mu$s/div: signal (yellow) and FFT (purple).}
-        %\label{fig:dso-psk}
-    %\end{figure}
-
-\end{enumerate}
-
-\subsection*{Receiver}
-\begin{enumerate}[resume]
-    \item We set \texttt{M}, \texttt{modScheme} and \texttt{symOrder} to the values of each capture and passed \texttt{symOrder} on to \texttt{symbolMapping()} and \texttt{symbolDemapping()} (\cref{lst:rx}). The rest already matched: 25 MBd, 60 pilot and 300 data symbols, and the same bits and header. The sampling frequency is different on purpose: 20 GSa/s, the one of the DSO (800 samples per symbol). We checked that all the captures are at 20 GSa/s and that the wired ones decode with no errors (the errors over the air are in Step 10).
-
-\begin{lstlisting}[caption={Our changes to \texttt{receiverSC.m}.}, label={lst:rx}]
-M = 2;             % Modulation order.
-modScheme = "psk"; % Modulation scheme ("psk" or "qam").
-symOrder = "gray"; % Symbol order ("gray" or "bin"), same as in the transmitter.
-...
-filename = "captures/wired/6a_2psk_gray.mat"; % Update with your file name.
-...
-symbolsPilot = symbolMapping(bitsPilot, M, modScheme, symOrder);
-...
-symbolsData = symbolMapping(bitsData, M, modScheme, symOrder);
-...
-bitsReceived = symbolDemapping(symbolsDataReceived, M, modScheme, symOrder);
-\end{lstlisting}
-
-    \item It turns the received baseband signal back into one complex value per symbol: for each symbol, it takes the part of the signal where its pulse is and computes the inner product with the same SRRC pulse of the transmitter (\texttt{symbols(iSymbol) = pulse * ySymbol}). The inputs are the received baseband samples of one block \texttt{r}, the samples per symbol \texttt{sps} ($L = 800$), and the number of symbols \texttt{nSymbols} ($N$). The output is a column of $N$ complex symbols. The pulse, \texttt{rcosdesign(0.75, 10, sps)}, has $10L + 1 = 8001$ samples and unit energy~\cite{rcosdesign}. In mathematical notation, with $p[n]$ the pulse and $N_p = 10L+1$,
-    \begin{equation}
-        \hat{s}_i = \sum_{n=1}^{N_p} p[n]\, r\big[n + (i-1)L\big], \qquad i = 1, \dots, N.
-    \end{equation}
-    This sum has no time step $1/F_s$, and the pulse has $\sum_n p[n]^2 = 1$ instead of $\int p(t)^2\, dt = 1$, so $\hat{s}_i$ is $\sqrt{F_s}$ times the integral $\int r(t)\, p\big(t - (i-1)T_s\big)\, dt$. A common factor does not change the decisions (for QAM we scale the symbols first, Step 19), so we left it; it only makes the units of our received constellations arbitrary.
-
-    \item \texttt{pskdemod()} uses Gray by default~\cite{pskdemod}, so it only matched our Gray captures. We added \texttt{symOrder} as an optional input, as in the transmitter (\cref{lst:demap}).
-
-    \texttt{pskdemod()} does the opposite of \texttt{pskmod()}: for each received symbol it picks the closest of the $M$ points and returns its $\log_2 M$ bits. For PSK the closest point is the one with the closest phase, so each point owns a slice of $360^\circ/M$.
-
-\begin{lstlisting}[caption={Our changes to \texttt{symbolDemapping.m}.}, label={lst:demap}]
-function bits = symbolDemapping(symbols, M, modScheme, symOrder)
-    if nargin < 4
-        symOrder = "gray";
-    end
-    ...
-        bits = pskdemod(symbols, M, 0, symOrder, OutputType="bit");
-\end{lstlisting}
-
-    \item \textbf{SNR.} As in Module 4, from the spectrum, but of the whole 50 $\mu$s capture (\cref{fig:psd}). The power in the signal band, $B = (1+\beta)R_s = 43.75$ MHz, is $P_S + P_N$. The noise floor $N_0$ is the median of the PSD 100 to 400 MHz away from the carrier; closer, there are the shoulders of the signal and an interferer. Then $P_N = N_0 B$ and $\text{SNR} = P_S/P_N$.
-
-    \textbf{$\bm{E_b/N_0}$.} $P_S = E_s/T_s = E_b \log_2 M \cdot R_s$ and $P_N = N_0 B$, so
-    \begin{equation}
-        \text{SNR} = \frac{E_b \log_2 M \cdot R_s}{N_0 B} \quad \Longrightarrow \quad \frac{E_b}{N_0} = \text{SNR} \cdot \frac{B}{R_s \log_2 M} = \text{SNR} \cdot \frac{1.75}{\log_2 M},
-    \end{equation}
-    i.e., $E_b/N_0\,[\text{dB}] = \text{SNR}\,[\text{dB}] + 2.43 - 10\log_{10}(\log_2 M)$.
-
-    \textbf{SER and BER} come from \texttt{receiverSC.m} (one frame: 300 symbols).
-
-    \Cref{tab:psk-gray,tab:psk-bin} give the results. The wired SNR is 54 dB for every $M$, with no errors. Over the air, at 1.5 m, the SNR is 40 to 44 dB, and 16-PSK and 32-PSK have errors: an SER of 16\% and 60\% with Gray coding, and 22\% and 35\% without. With 40 dB of SNR, these errors do not come from the noise we measure here, but from distortion and multipath, which this SNR does not see (Step 14).
-
-    These SNRs come from the spectrum of the DSO trace, before the receiver. After the correlation receiver, the SNR can also be estimated from the symbols as $E_s/N_0 \approx 1/\text{EVM}^2$ (Step 14), which counts everything that moves them away from the ideal points. For 16-PSK with Gray coding, the spectrum gives $E_s/N_0 = \text{SNR} + 2.4~\text{dB} = 57$ dB with the cable and 45 dB at 1.5 m, but the symbols give only 35 dB and 15 dB. The difference is the distortion and multipath, which the spectrum counts as signal. The symbol-level value is the one that predicts the errors: 15 dB gives an SER of 13\% in AWGN for 16-PSK, close to the 16\% we measured.
-
-    \begin{table}[H]
-        \centering
-        \small
-        \setlength{\tabcolsep}{4pt}
-        \begin{tabular}{c|cc|cc|cc|cc}
-            \hline
-            \multirow{2}{*}{\shortstack{Modulation\\order}} & \multicolumn{2}{c|}{SNR (dB)} & \multicolumn{2}{c|}{$E_b/N_0$ (dB)} & \multicolumn{2}{c|}{SER} & \multicolumn{2}{c}{BER} \\
-             & Wired & Wireless & Wired & Wireless & Wired & Wireless & Wired & Wireless \\
-            \hline
-            \inputtable{tables/psk_gray.tex}
-        \end{tabular}
-        \caption{M-PSK with Gray coded signals (one frame per capture: 300 symbols, $300\log_2 M$ bits).}
-        \label{tab:psk-gray}
-    \end{table}
-
-    \begin{table}[H]
-        \centering
-        \small
-        \setlength{\tabcolsep}{4pt}
-        \begin{tabular}{c|cc|cc|cc|cc}
-            \hline
-            \multirow{2}{*}{\shortstack{Modulation\\order}} & \multicolumn{2}{c|}{SNR (dB)} & \multicolumn{2}{c|}{$E_b/N_0$ (dB)} & \multicolumn{2}{c|}{SER} & \multicolumn{2}{c}{BER} \\
-             & Wired & Wireless & Wired & Wireless & Wired & Wireless & Wired & Wireless \\
-            \hline
-            \inputtable{tables/psk_bin.tex}
-        \end{tabular}
-        \caption{M-PSK without Gray coded signals (one frame per capture: 300 symbols, $300\log_2 M$ bits).}
-        \label{tab:psk-bin}
-    \end{table}
-
-    \begin{figure}[H]
-        \centering
-        \fig{\linewidth}{figures/psd_16psk_gray.pdf}
-        \caption{PSD of the wired and wireless 16-PSK Gray captures, with the signal band (green) and the band used for the noise floor (gray). Made with our script \texttt{checks/plotSpectrum.m}.}
-        \label{fig:psd}
-    \end{figure}
-
-    \item No. Each value comes from one frame (300 symbols), and with 0 errors we can only say, with 95\% confidence, that $\text{SER} < 3/300 = 1\%$ (``rule of three''). Each wrong symbol has at most $\log_2 M$ wrong bits, so $\text{BER} \leq \text{SER}$, so the BER is also below 1\%. To make it meaningful we would need:
-    \begin{itemize}
-        \item Many more symbols (about 100 errors worth), many captures (one cannot be longer than 50 $\mu$s) and a longer random bit sequence.
-        \item A lower SNR, where errors happen (larger distance or lower SG power), swept to get the BER vs.\ $E_b/N_0$ curve.
-        \item Repetitions at different times and positions.
-    \end{itemize}
-    Over the air, 16-PSK, 32-PSK, 16-QAM and 32-QAM had errors, from 8 to 181 out of 300 symbols. Even then, 300 symbols give only a rough estimate: with 95\% confidence, for example, the SER of 16-PSK with Gray coding (49 errors) is between 12 and 21\%, and the one of 32-QAM (8 errors) between 1.2 and 5.2\% (exact binomial interval).
-
-    \item A bit error happens when a received symbol crosses into the region of a neighbor, so what matters is how far the symbols are from the decision boundaries (\cref{fig:rx-psk}):
-    \begin{itemize}
-        \item \textbf{Noise and interference} turn the received symbols into a ``cloud'' (dispersed points around the true symbol point). Depending on the channel (wired or over the air), the cloud can be tight around the central point or more spread.
-        \item \textbf{Phase errors} rotate the points along the circle, which is what matters for PSK. The receiver corrects a static phase from the header; a frequency offset, like the one in Module 4, would rotate the whole constellation.
-        \item \textbf{Multipath} without an equalizer also spreads the clouds.
-        \item \textbf{The modulation order}: the same cloud is closer to the boundaries when the regions are narrower. Over the air, at 1.5 m, the phase spread (the standard deviation of the phase error) fills 6\% of the half-region of 2-PSK, 67\% of the one of 16-PSK and more than all of the one of 32-PSK (152\%), which is why only 16-PSK and 32-PSK have errors (Step 10).
-        \item \textbf{The mapping}: with Gray coding an error to a neighbor costs only one bit.
-    \end{itemize}
-    Amplitude errors move the points off the circle (radially) and do not change the decision for PSK. The 1.1 m and 10 cm captures are also shown for comparison.
-
-    To see the effect of distance, \cref{fig:rx-2psk-distance} compares 2-PSK and 4-PSK without Gray coding at 10 cm, 1.1 m and 1.5 m, and 2-PSK at 2 m. For 2-PSK, the EVM goes from 7\% at 10 cm and 10\% at 1.1 m to 16\% at 1.5 m, and for 4-PSK from 6--9\% to 19\%: the clouds grow, but there are still no errors. At 2 m the EVM jumps to 74\% as each cluster splits into two, above and below the I axis, and each half becomes a ring. The split probably comes from multipath, with an echo that depends on the neighboring symbol, and the rings from a signal that rotates with respect to ours, such as an interferer or a small frequency offset, but we did not check it. There are still no errors, because 2-PSK only looks at the sign of I and all the symbols stay on their side; with more points per circle, these symbols would be wrong.
-
-    \begin{figure}[H]
-        \centering
-        \begin{subfigure}{\linewidth}\centering\fig{\linewidth}{figures/rx_psk_wired.pdf}\caption{Wired.}\end{subfigure}
-
-        \vspace{0.5em}
-        \begin{subfigure}{\linewidth}\centering\fig{\linewidth}{figures/rx_psk_wireless.pdf}\caption{Wireless, 1.5 m.}\end{subfigure}
-
-        \vspace{0.5em}
-        \begin{subfigure}{\linewidth}\centering\fig{\linewidth}{figures/rx_psk_wireless_1p1m.pdf}\caption{Wireless, 1.1 m (earlier captures).}\end{subfigure}
-
-        \vspace{0.5em}
-        \begin{subfigure}{\linewidth}\centering\fig{\linewidth}{figures/rx_psk_wireless_10cm.pdf}\caption{Wireless, 10 cm (earlier captures).}\end{subfigure}
-        \caption{Received M-PSK data constellations with Gray coding (blue) and the ideal points (red). The received symbols of each capture are only divided by their mean amplitude, so that they can be drawn on top of the ideal points.}
-        \label{fig:rx-psk}
-    \end{figure}
-
-    \begin{figure}[H]
-        \centering
-        \fig{0.72\linewidth}{figures/rx_2psk_distance.pdf}
-        \caption{Received 2-PSK (top) and 4-PSK (bottom) constellations without Gray coding at 10 cm, 1.1 m, 1.5 m and 2 m (blue), with the ideal points (red). There is no 4-PSK capture at 2 m.}
-        \label{fig:rx-2psk-distance}
-    \end{figure}
-
-    \item The mapping does not move the points or the decision regions, so we expect the same SER, and a lower BER with Gray coding: most errors go to a neighbor, which with Gray coding is only one bit wrong ($\text{BER} \approx \text{SER}/\log_2 M$), while in binary order it can be several (\texttt{000} and \texttt{111} are neighbors in 8-PSK, \cref{fig:tx-psk}). Over the air, 16-PSK and 32-PSK had errors (\cref{tab:psk-gray,tab:psk-bin}). Their SERs are different with and without Gray coding (16\% and 22\% for 16-PSK, 60\% and 35\% for 32-PSK), but they come from different captures, and the channel changed from one capture to the next, so the SERs cannot be compared directly. What we can compare is how many bits each wrong symbol costs. That is, with Gray coding, $\text{BER}/\text{SER}$ is 0.25 for 16-PSK and 0.21 for 32-PSK, close to $1/\log_2 M$, i.e., about one bit per wrong symbol, while without it, it is 0.46 and 0.40, i.e., about two bits per wrong symbol.
-
-    \item \textit{Optional.} The EVM says how far the received symbols are from where they should be. For each symbol, the error vector goes from the ideal point to the received one, and the RMS EVM is the RMS length of the error vectors divided by the RMS amplitude of the ideal points, usually given in \% or dB~\cite{commevm}:
-    \begin{equation}
-        \text{EVM} = \sqrt{\frac{\sum_k |\hat{s}_k - s_k|^2}{\sum_k |s_k|^2}}.
-    \end{equation}
-    Unlike the SER and BER, it does not need errors to happen, and it includes everything that moves the symbols: noise, phase errors, ISI and distortion.
-
-    We computed it for all the Gray captures, after multiplying the received symbols by one real factor so that they have the same average power as the transmitted ones (\cref{tab:evm}); it gives the same values as \texttt{comm.EVM}~\cite{commevm}. With the cable the EVM is about 2\% ($-34$ dB), and over the air, at 1.5 m, 11 to 21\%. If there were only noise, the EVM would be $1/\sqrt{E_s/N_0}$, i.e., 0.14\% at the 57 dB of Step 10, so most of the 2\% must come from something other than that noise, probably the distortion that shows up as shoulders in \cref{fig:psd}. Over the air, 16-PSK and 32-PSK have the largest EVM, 19\% and 21\%, and they are the ones with errors.
+    \item \missing{setup and distance; BER of 16-PSK and 32-PSK over the air with and without filtering.}
 
     \begin{table}[H]
         \centering
         \small
         \begin{tabular}{c|cc|cc}
             \hline
-            \multirow{2}{*}{$M$ (Gray)} & \multicolumn{2}{c|}{Wired} & \multicolumn{2}{c}{Wireless} \\
-             & EVM (\%) & EVM (dB) & EVM (\%) & EVM (dB) \\
+            \multirow{2}{*}{\shortstack{Modulation\\order}} & \multicolumn{2}{c|}{BER} & \multicolumn{2}{c}{EVM (\%)} \\
+             & No filter & Filter & No filter & Filter \\
             \hline
-            \inputtable{tables/evm.tex}
+            \inputtable{tables/filter_psk.tex}
         \end{tabular}
-        \caption{RMS EVM of the received data symbols (one frame, 300 symbols).}
-        \label{tab:evm}
+        \caption{16-PSK and 32-PSK over the air, with and without the noise filter.}
+        \label{tab:filter-psk}
     \end{table}
+
+    \begin{figure}[H]
+        \centering
+        \fig{\linewidth}{figures/A/rx_psk_filter.pdf}
+        \caption{Received 16-PSK and 32-PSK constellations without (left) and with (right) the noise filter.}
+        \label{fig:rx-psk-filter}
+    \end{figure}
+
+    \item \missing{conclusion: is out-of-band noise and interference a major problem for our signals?}
+
+    \item \missing{same study for 16-QAM and 32-QAM.}
+
+    \begin{table}[H]
+        \centering
+        \small
+        \begin{tabular}{c|cc|cc}
+            \hline
+            \multirow{2}{*}{\shortstack{Modulation\\order}} & \multicolumn{2}{c|}{BER} & \multicolumn{2}{c}{EVM (\%)} \\
+             & No filter & Filter & No filter & Filter \\
+            \hline
+            \inputtable{tables/filter_qam.tex}
+        \end{tabular}
+        \caption{16-QAM and 32-QAM over the air, with and without the noise filter.}
+        \label{tab:filter-qam}
+    \end{table}
+
+    \begin{figure}[H]
+        \centering
+        \fig{\linewidth}{figures/A/rx_qam_filter.pdf}
+        \caption{Received 16-QAM and 32-QAM constellations without (left) and with (right) the noise filter.}
+        \label{fig:rx-qam-filter}
+    \end{figure}
 \end{enumerate}
 
 %=====================================================================
-\section*{Part B: M-QAM}
+\section*{Part B: Equalization}
 %=====================================================================
 \subsection*{Transmitter}
-\begin{enumerate}[resume]
-    \item
-    \begin{enumerate}[label=\alph*)]
-        \item We added the QAM branch with \texttt{qammod()}, with the same inputs as \texttt{pskmod()}: the bits, $M$, the symbol order and \texttt{InputType="bit"} (\cref{lst:qam})~\cite{qammod}. By default \texttt{qammod()} puts the points 2 apart, so the average power grows with $M$ (2, 6, 10 and 20 for $M = 4$, 8, 16 and 32). \texttt{UnitAveragePower=true} scales it to an average power of 1, the same as \texttt{pskmod()}.
-\begin{lstlisting}[caption={Our change to \texttt{symbolMapping.m} for M-QAM.}, label={lst:qam}]
-    elseif strcmp(modScheme, "qam")
-        symbols = qammod(bits, M, symOrder, InputType="bit", UnitAveragePower=true); % Average power 1, as pskmod.
-\end{lstlisting}
-    \end{enumerate}
-
-    \item \Cref{fig:tx-qam}, with the bits of each point drawn by \texttt{qammod()} (\texttt{PlotConstellation=true}), shows what we expected: 4-QAM is 4-PSK turned by $45^\circ$, 8-QAM is a $4 \times 2$ rectangle, 16-QAM a square and 32-QAM a cross, all with average power 1. With Gray coding, neighbors differ in one bit, except for 8 of the 52 pairs of neighbors in the 32-QAM cross. For $M \geq 8$ the points are farther apart than in M-PSK: the minimum distance is 0.82, 0.63 and 0.45 for $M = 8$, 16 and 32, against 0.77, 0.39 and 0.20.
-
-    \begin{figure}[H]
-        \centering
-        \fig{\linewidth}{figures/tx_qam.pdf}
-        \caption{Generated M-QAM data constellations with Gray coding: ideal points with their bits, drawn by \texttt{qammod()} (red), and the symbols generated by \texttt{transmitterSC.m} (blue).}
-        \label{fig:tx-qam}
-    \end{figure}
-
-    \item
-    \begin{enumerate}[label=\alph*)]
-        \item With \texttt{modScheme = "qam"} and \texttt{symOrder = "gray"} in \texttt{transmitterSC.m}, we generated \texttt{qam/$M$qam\_25SR\_gray.WAVEFORM} for $M = 4$, 8, 16 and 32. The frame is the same as for M-PSK: BPSK header, 60 pilot and 300 data symbols.
-    \end{enumerate}
-
-    \item We repeated Step 6 with the four M-QAM files, with the same SG settings and DSO setup.
-    \begin{enumerate}[label=\alph*)]
-        \item Wired: the captures are \texttt{wired/18a\_$M$qam\_gray.mat}. We did not note the vertical scale; from the voltage step of the samples it was about 420 mV/div. The power in the signal band is 8.1 dBm, the same as for M-PSK, but the peaks are higher (about 3.0 V peak to peak against 2.5 V), because QAM uses several amplitudes and the SG keeps the same average power. 
-        \item Wireless: the same setup as in Step 6b, at 1.5 m, with the captures \texttt{wireless/\allowbreak 18b\_$M$qam\_gray.mat}, at about 7 mV/div. The received power is $-36.4$ to $-39.1$ dBm. 
-    \end{enumerate}
-\end{enumerate}
+Nothing changes in the transmitter: with our setup, pre-distortion does not make a difference.
 
 \subsection*{Receiver}
 \begin{enumerate}[resume]
-    \item
-    \begin{enumerate}[label=\alph*)]
-        \item We added the QAM branch with \texttt{qamdemod()}, with the same symbol order and \texttt{UnitAveragePower=true} as in the transmitter, and \texttt{OutputType="bit"} (\cref{lst:qamdemod})~\cite{qamdemod}. Unlike for PSK, the QAM decision depends on the amplitude, and the received symbols have whatever amplitude the channel and the DSO give them, so we first divide them by their RMS value to give them average power 1, like the constellation. It is one real factor for all the symbols, so I and Q keep their ratio. With this change, \texttt{receiverSC.m} decodes the 8 QAM captures: the wired ones have no errors, and over the air only 16-QAM and 32-QAM have some (Step 21).
-\begin{lstlisting}[caption={Our change to \texttt{symbolDemapping.m} for M-QAM.}, label={lst:qamdemod}]
-    elseif strcmp(modScheme, "qam")
-        % QAM decisions depend on the amplitude, so we first give the received symbols unit average
-        % power, like the constellation (one real factor; no equalization until Module 6).
-        symbols = symbols / sqrt(mean(abs(symbols).^2));
-        bits = qamdemod(symbols, M, symOrder, OutputType="bit", UnitAveragePower=true);
-\end{lstlisting}
-    \end{enumerate}
+    \item \missing{position of the equalization block in \texttt{receiverSC.m}, and on what it works (samples or symbols, pilot as training).}
 
-    \item \Cref{fig:rx-qam} shows the received symbols as they come out of the receiver, without normalizing I or Q, as asked. Only the demapper applies one real gain before \texttt{qamdemod()} (Step 19), because with \texttt{UnitAveragePower=true} it expects average power 1. Without it, the wired symbols (amplitude about 24) would all be decided as the outer points and the wireless ones (about 200 times smaller) as the inner points. The red crosses are the ideal points scaled by the RMS value of the received symbols. With the cable, the constellations have the shapes of \cref{fig:tx-qam}, with tight clusters (EVM of 1 to 2\%) and no rotation, so the phase correction from the BPSK header also works for QAM. Over the air, at 1.5 m, the points are about 200 times smaller (46 dB, like the received power) and the clusters much larger (EVM of 14 to 24\%). In 16-QAM and 32-QAM some symbols cross to the region of a neighbor, so there are errors (Step 21). The 1.1 m and 10 cm captures are also shown for comparison. In the wired 16-QAM, the outer points are slightly outside the red crosses. The RMS scaling is a bit off because our 300 data symbols have an average power of 0.94 instead of 1.
+    \item \missing{structure of \texttt{equalization.m}: inputs, LS estimation, ZF/MMSE branch, \texttt{filter()} with \texttt{e}.}
+
+    We define two equalizers: Type 1, zero forcing (ZF), and Type 2, minimum mean square error (MMSE).
+
+\subsubsection*{LS Channel Estimation}
+
+    \item \missing{LS estimator $\mathbf{h} = (\mathbf{S}^H\mathbf{S})^{-1}\mathbf{S}^H\mathbf{r}$ with \texttt{'} and \texttt{\textbackslash}~\cite{ctranspose,mldivide}, line 17.}
+
+\begin{lstlisting}[caption={LS channel estimation in \texttt{equalization.m}.}, label={lst:ls}]
+h = NaN; % MISSING
+\end{lstlisting}
+
+    \item \missing{role of $L$ in the estimation; lengths of \texttt{h} and \texttt{H}.}
+
+\subsubsection*{ZF Channel Equalization}
+
+    \item \missing{ZF equalizer in the frequency domain, line 21; length of \texttt{e}.}
+
+\begin{lstlisting}[caption={ZF equalizer in \texttt{equalization.m}.}, label={lst:zf}]
+E = NaN; % MISSING
+\end{lstlisting}
+
+    \item \missing{constellation, BER and EVM of 16-PSK and 32-PSK with and without ZF for several $L$.}
+
+    \begin{table}[H]
+        \centering
+        \small
+        \begin{tabular}{c|c|cc}
+            \hline
+            $M$ & $L$ & BER & EVM (\%) \\
+            \hline
+            \inputtable{tables/zf_psk.tex}
+        \end{tabular}
+        \caption{16-PSK and 32-PSK without equalization ($L = $ --) and with ZF for several $L$.}
+        \label{tab:zf-psk}
+    \end{table}
 
     \begin{figure}[H]
         \centering
-        \begin{subfigure}{\linewidth}\centering\fig{\linewidth}{figures/rx_qam_wired.pdf}\caption{Wired.}\end{subfigure}
-
-        \vspace{0.5em}
-        \begin{subfigure}{\linewidth}\centering\fig{\linewidth}{figures/rx_qam_wireless.pdf}\caption{Wireless, 1.5 m.}\end{subfigure}
-
-        \vspace{0.5em}
-        \begin{subfigure}{\linewidth}\centering\fig{\linewidth}{figures/rx_qam_wireless_1p1m.pdf}\caption{Wireless, 1.1 m (earlier captures).}\end{subfigure}
-
-        \vspace{0.5em}
-        \begin{subfigure}{\linewidth}\centering\fig{\linewidth}{figures/rx_qam_wireless_10cm.pdf}\caption{Wireless, 10 cm (earlier captures).}\end{subfigure}
-        \caption{Received M-QAM data constellations (blue), without normalizing I or Q, and the ideal points scaled by the RMS value of the received symbols (red).}
-        \label{fig:rx-qam}
+        \fig{\linewidth}{figures/B/rx_psk_zf.pdf}
+        \caption{Received 16-PSK and 32-PSK constellations without equalization and with ZF for several $L$.}
+        \label{fig:rx-psk-zf}
     \end{figure}
 
-    \item We used the same method as in Step 10 (SNR from the spectrum, the same $E_b/N_0$ expression, and \texttt{receiverSC.m} with the QAM demapping of Step 19), in \cref{tab:qam-gray}. With the cable the SNR is 55 dB, a bit higher than for M-PSK because the DSO was at a smaller vertical scale (Step 18), and there are no errors. Over the air, at 1.5 m, the SNR is 42 to 44 dB, and 16-QAM and 32-QAM have errors: an SER of 9.7\% and 2.7\%.
+\subsubsection*{MMSE Channel Equalization}
 
-    \begin{table}[H]
-        \centering
-        \small
-        \setlength{\tabcolsep}{4pt}
-        \begin{tabular}{c|cc|cc|cc|cc}
-            \hline
-            \multirow{2}{*}{\shortstack{Modulation\\order}} & \multicolumn{2}{c|}{SNR (dB)} & \multicolumn{2}{c|}{$E_b/N_0$ (dB)} & \multicolumn{2}{c|}{SER} & \multicolumn{2}{c}{BER} \\
-             & Wired & Wireless & Wired & Wireless & Wired & Wireless & Wired & Wireless \\
-            \hline
-            \inputtable{tables/qam_gray.tex}
-        \end{tabular}
-        \caption{M-QAM with Gray coded signals (one frame per capture: 300 symbols, $300\log_2 M$ bits).}
-        \label{tab:qam-gray}
-    \end{table}
+    \item \missing{MMSE equalizer in the frequency domain, line 26, with \texttt{sigma2} and \texttt{Ps} (lines 23 and 24), \texttt{conj()} and \texttt{abs()}.}
 
-    \item With the same average power, M-QAM spreads its points over the whole I/Q plane, so for $M \geq 8$ they are farther apart than in M-PSK (Step 16), and we expect fewer errors for the same $E_b/N_0$: the minimum distance is larger by 0.6, 4.2 and 7.2 dB for $M = 8$, 16 and 32. For $M = 4$ both are the same constellation. The price is that QAM also depends on the amplitude, so it needs the right scaling (Step 19), and its peaks are higher (Step 18).
-
-    Our measurements agree: over the air, at the same distance and in the same session, 16-QAM has an SER of 9.7\% against 16 to 22\% for 16-PSK, and 32-QAM 2.7\% against 35 to 60\% for 32-PSK (\cref{tab:psk-gray,tab:psk-bin,tab:qam-gray}). The EVM explains it: what matters is the half distance to the neighbors compared with the error vectors, $d_\text{min}/(2\,\text{EVM})$. For $M = 32$, the boundaries of 32-QAM are 16 RMS error vectors away with the cable and 1.6 over the air (EVM of 1.4\% and 14\%, Step 20), against about 3 and 0.5 for 32-PSK (EVM of 3.4\% and 21\%, \cref{tab:evm}), so over the air most 32-PSK symbols cross to a neighbor.
-
-    \item \textit{Optional.} The PAPR is the highest instantaneous power of a signal divided by its average power, usually in dB. It tells how much room the DAC and the amplifier need above the average: with a high PAPR the amplifier has to work further from saturation, so it is less efficient, or the peaks get clipped and distorted. All the M-PSK symbols have the same power, so their PAPR is 0 dB, while the outer points of M-QAM are above the average.
-
-    \Cref{tab:papr} gives the PAPR of the symbols. It does not simply grow with $M$: it depends on how far the outer points are compared with the average, which is the most for 16-QAM, with its corners, and less for the 32-QAM cross, which has no corners. The received constellations have a higher PAPR than the transmitted symbols, because the noise and distortion spread the clusters and the most extreme symbol sets the peak: by about 0.1 dB with the cable and 1.1 to 2.3 dB over the air. The PAPR of the waveform is higher still, since the pulse shaping adds peaks between the symbols, which is why the QAM captures have larger peaks than the M-PSK ones (Step 18).
-
-    \begin{table}[H]
-        \centering
-        \small
-        \begin{tabular}{c|cc|cc}
-            \hline
-            \multirow{2}{*}{$M$} & \multicolumn{2}{c|}{Transmitted (dB)} & \multicolumn{2}{c}{Received (dB)} \\
-             & All $M$ points & 300 data symbols & Wired & Wireless \\
-            \hline
-            \inputtable{tables/papr.tex}
-        \end{tabular}
-        \caption{PAPR of the M-QAM symbols.}
-        \label{tab:papr}
-    \end{table}
-\end{enumerate}
-
-%=====================================================================
-\section*{Part C: Matched Filter Receiver}
-%=====================================================================
-\begin{enumerate}[resume]
-    \item We copied \texttt{functions/correlationReceiver.m} to \texttt{functions/matchedFilter.m} and renamed the function inside it to \texttt{matchedFilter}, since MATLAB expects the function to have the name of its file.
-
-    \item We replaced only the line that correlates and integrates (\texttt{symbols(iSymbol) = pulse * ySymbol}). Now the same piece of the received signal goes through the matched filter, the time-reversed pulse $h[n] = p[N_p - n + 1]$, with \texttt{conv()}, and we keep the output at the sample where the pulse and the filter overlap completely, which is the sampling instant $T_s$ of that symbol (\cref{lst:mf}). The option \texttt{"valid"} returns only that sample. In mathematical notation, with $r_i[n]$ the piece of the $i$-th symbol,
-    \begin{equation}
-        \hat{s}_i = (r_i * h)[N_p] = \sum_{n=1}^{N_p} r_i[n]\, h[N_p - n + 1] = \sum_{n=1}^{N_p} r_i[n]\, p[n].
-    \end{equation}
-\begin{lstlisting}[caption={Our change to \texttt{matchedFilter.m}, the only line that differs from \texttt{correlationReceiver.m} apart from the function name.}, label={lst:mf}]
-% correlationReceiver.m
-        symbols(iSymbol) = pulse * ySymbol; % Correlator receiver.
-% matchedFilter.m
-        symbols(iSymbol) = conv(ySymbol, fliplr(pulse).', "valid"); % Matched filter h[n] = p[Np - n + 1], sampled at Ts.
+\begin{lstlisting}[caption={MMSE equalizer in \texttt{equalization.m}.}, label={lst:mmse}]
+E = NaN; % MISSING
 \end{lstlisting}
 
-    \item They use the same filter. The SRRC pulse is symmetric ($p$ and its time-reversed version are identical), so the matched filter, the time-reversed pulse, is the pulse itself. What changes is the order, as the transmitter upsamples the symbols and then filters them with $p$, going from symbols to samples, while the receiver filters with $p$ and then keeps one sample per symbol at $T_s$, going from samples to symbols. Together, the two SRRC filters give a raised cosine, which is zero at the other sampling instants, so there is no ISI, and the matched filter gives the highest SNR at the sampling instants. The pulse has the same shape on both sides, but with 3 samples per symbol at the SG (75 MSa/s) and 800 at the DSO (20 GSa/s).
+    \item \missing{constellation, BER and EVM of 16-PSK and 32-PSK with and without MMSE for several $L$; comparison with ZF.}
 
-    \item Yes, they are the same. We ran \texttt{receiverSC.m} on the 28 captures (M-PSK and M-QAM, wired and wireless at 1.5 m), once with \texttt{correlationReceiver.m} and once with \texttt{matchedFilter.m}. The BER and SER are the same in all of them, and the received symbols differ by at most $2.7 \cdot 10^{-13}$ for symbols with an amplitude of about 24, i.e., about $10^{-14}$ of their size, which is only rounding. Both receivers also make exactly the same errors in the six captures over the air that have errors. This is what we expected from Step 25 as the matched filter sampled at $T_s$ computes exactly the same sum as the correlation.
+    \begin{table}[H]
+        \centering
+        \small
+        \begin{tabular}{c|c|cc}
+            \hline
+            $M$ & $L$ & BER & EVM (\%) \\
+            \hline
+            \inputtable{tables/mmse_psk.tex}
+        \end{tabular}
+        \caption{16-PSK and 32-PSK without equalization ($L = $ --) and with MMSE for several $L$.}
+        \label{tab:mmse-psk}
+    \end{table}
+
+    \begin{figure}[H]
+        \centering
+        \fig{\linewidth}{figures/B/rx_psk_mmse.pdf}
+        \caption{Received 16-PSK and 32-PSK constellations without equalization and with MMSE for several $L$.}
+        \label{fig:rx-psk-mmse}
+    \end{figure}
+
+    \item \missing{same study (ZF and MMSE) for 16-QAM and 32-QAM.}
+
+    \begin{table}[H]
+        \centering
+        \small
+        \begin{tabular}{c|c|cc|cc}
+            \hline
+            \multirow{2}{*}{$M$} & \multirow{2}{*}{$L$} & \multicolumn{2}{c|}{ZF} & \multicolumn{2}{c}{MMSE} \\
+             & & BER & EVM (\%) & BER & EVM (\%) \\
+            \hline
+            \inputtable{tables/eq_qam.tex}
+        \end{tabular}
+        \caption{16-QAM and 32-QAM without equalization ($L = $ --) and with ZF and MMSE for several $L$.}
+        \label{tab:eq-qam}
+    \end{table}
+
+    \begin{figure}[H]
+        \centering
+        \fig{\linewidth}{figures/B/rx_qam_eq.pdf}
+        \caption{Received 16-QAM and 32-QAM constellations without equalization and with ZF and MMSE.}
+        \label{fig:rx-qam-eq}
+    \end{figure}
 \end{enumerate}
 
 \begin{thebibliography}{9}
-    \bibitem{pskmod} MathWorks, ``pskmod: Modulate signal using M-PSK method,'' MATLAB Communications Toolbox documentation (R2025b). [Online]. Available: \url{https://www.mathworks.com/help/comm/ref/pskmod.html}
-    \bibitem{rcosdesign} MathWorks, ``rcosdesign: Raised cosine FIR pulse-shaping filter design,'' MATLAB Signal Processing Toolbox documentation (R2025b). [Online]. Available: \url{https://www.mathworks.com/help/signal/ref/rcosdesign.html}
-    \bibitem{pskdemod} MathWorks, ``pskdemod: Demodulate using M-ary PSK method,'' MATLAB Communications Toolbox documentation (R2025b). [Online]. Available: \url{https://www.mathworks.com/help/comm/ref/pskdemod.html}
-    \bibitem{commevm} MathWorks, ``comm.EVM: Measure error vector magnitude (EVM) of received signal,'' MATLAB Communications Toolbox documentation (R2025b). [Online]. Available: \url{https://www.mathworks.com/help/comm/ref/comm.evm-system-object.html}
-    \bibitem{qammod} MathWorks, ``qammod: Quadrature amplitude modulation (QAM),'' MATLAB Communications Toolbox documentation (R2025b). [Online]. Available: \url{https://www.mathworks.com/help/comm/ref/qammod.html}
-    \bibitem{qamdemod} MathWorks, ``qamdemod: Quadrature amplitude demodulation,'' MATLAB Communications Toolbox documentation (R2025b). [Online]. Available: \url{https://www.mathworks.com/help/comm/ref/qamdemod.html}
+    \bibitem{bandpass} MathWorks, ``bandpass: Bandpass-filter signals,'' MATLAB Signal Processing Toolbox documentation (R2025b). [Online]. Available: \url{https://www.mathworks.com/help/signal/ref/bandpass.html}
+    \bibitem{ctranspose} MathWorks, ``ctranspose, ': Complex conjugate transpose,'' MATLAB documentation (R2025b). [Online]. Available: \url{https://www.mathworks.com/help/matlab/ref/ctranspose.html}
+    \bibitem{mldivide} MathWorks, ``mldivide, \textbackslash: Solve systems of linear equations $Ax = B$ for $x$,'' MATLAB documentation (R2025b). [Online]. Available: \url{https://www.mathworks.com/help/matlab/ref/mldivide.html}
 \end{thebibliography}
 
 \end{document}
