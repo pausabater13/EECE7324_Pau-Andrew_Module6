@@ -1,0 +1,20 @@
+# Old version: kept only locally.
+module5-old-version/
+
+# DSO captures (~16 MB each): kept only locally.
+Scripts_Module5/captures/
+
+# Assignment handout.
+Laboratory Assignment 4 (Module 5).pdf
+
+# LaTeX build files.
+*.aux
+*.log
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+/main.pdf
+
+# macOS.
+.DS_Store
