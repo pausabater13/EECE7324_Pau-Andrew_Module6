@@ -71,10 +71,10 @@ Nothing changes in the transmitter: the noise filtering is done at the receiver.
 \begin{enumerate}
     \item The filtering block goes in the \texttt{Noise Filtering} section of \texttt{receiverSC.m} (line 55), right after loading the DSO capture and before \texttt{frameSynchronization()}. We filter first because the synchronization correlates the received signal with the header, and out-of-band noise and interference add to that correlation and can shift or hide its peak. Removing them first gives a cleaner peak, so the frame starts at the right sample.
 
-    \item \missing{parameters of \texttt{bandpass()}~\cite{bandpass} and our filter: passband from $f_c$ and $B = (1+\beta)R_s$, and the new line 55.}
+    \item \texttt{bandpass(x, wpass, fs)} takes the signal, the passband edges in Hz and the sampling frequency, and optionally the \texttt{Steepness} and \texttt{StopbandAttenuation} (0.85 and 60 dB by default)~\cite{bandpass}. Our signal is centered at $f_c = 2.4$ GHz and occupies $B = (1+\beta)R_s = 1.75 \cdot 25 = 43.75$ MHz, so we set the passband to $f_c \pm B/2$, about 2.378 to 2.422 GHz (\cref{lst:bandpass}).
 
-\begin{lstlisting}[caption={Our noise filter in \texttt{receiverSC.m}.}, label={lst:bandpass}]
-yFiltered = NaN; % MISSING
+\begin{lstlisting}[caption={Our noise filter in \texttt{receiverSC.m} (line 55).}, label={lst:bandpass}]
+yFiltered = bandpass(yDSO, [fc - 0.875*Rs, fc + 0.875*Rs], Fs);
 \end{lstlisting}
 
     \item \missing{effect of the filter on the power spectrum, how we tuned the parameters, and the final filter details (passband, steepness, stopband attenuation).}
