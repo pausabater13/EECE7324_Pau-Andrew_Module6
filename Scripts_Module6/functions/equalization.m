@@ -14,16 +14,22 @@ function rDataEqualized = equalization(rData, r, s, equalizerType, L)
     % Least Squares (LS) Channel Impulse Response (CIR) Estimation.
     S = convmtx(s, L);
     S = S(1 : numel(s), :);
-    h = NaN;
+    %Q9%%%%%
+    h = (S' * S) \ (S' * r); % LS estimate h = (S^H S)^-1 S^H r.
+    %Q9%%%%%
     H = fft(h);
 
     if strcmp(equalizerType, "zf")
-        E = NaN; % Zero Forcing (ZF) Channel Equalizer.
+        %Q11%%%%%
+        E = 1 ./ H; % Zero Forcing (ZF) Channel Equalizer.
+        %Q11%%%%%
     elseif strcmp(equalizerType, "mmse")
         sigma2 = var(r - S * h);    % Noise variance estimation.
         Ps     = var(s);            % Power of the transmitted signal estimation.
 
-        E = NaN; % Minimum Mean Square Error (MMSE) Equalizer.
+        %Q13%%%%%
+        E = conj(H) ./ (abs(H).^2 + sigma2 / Ps); % Minimum Mean Square Error (MMSE) Equalizer.
+        %Q13%%%%%
     else
         error("Choose a valid equalizer type.");
     end

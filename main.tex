@@ -71,18 +71,22 @@ Nothing changes in the transmitter: the noise filtering is done at the receiver.
 \begin{enumerate}
     \item The filtering block goes in the \texttt{Noise Filtering} section of \texttt{receiverSC.m} (line 55), right after loading the DSO capture and before \texttt{frameSynchronization()}. We filter first because the synchronization correlates the received signal with the header, and out-of-band noise and interference add to that correlation and can shift or hide its peak. Removing them first gives a cleaner peak, so the frame starts at the right sample.
 
-    \item \texttt{bandpass(x, wpass, fs)} takes the signal, the passband edges in Hz and the sampling frequency, and optionally the \texttt{Steepness} and \texttt{StopbandAttenuation} (0.85 and 60 dB by default)~\cite{bandpass}. Our signal is centered at $f_c = 2.4$ GHz and occupies $B = (1+\beta)R_s = 1.75 \cdot 25 = 43.75$ MHz, so we set the passband to $f_c \pm B/2$, about 2.378 to 2.422 GHz (\cref{lst:bandpass}).
+    \item \texttt{bandpass(x, fpass, fs)} takes the signal, the passband edges in Hz and the sampling frequency, and optionally the \texttt{Steepness} and \texttt{StopbandAttenuation} (0.85 and 60 dB by default)~\cite{bandpass}. Our signal is centered at $f_c = 2.4$ GHz and occupies $B = (1+\beta)R_s = 1.75 \cdot 25 = 43.75$ MHz, so we set the passband to $f_c \pm B/2 = f_c \pm 0.875R_s$, about 2.378 to 2.422 GHz, with the default steepness and attenuation (\cref{lst:bandpass}).
 
-\begin{lstlisting}[caption={Our noise filter in \texttt{receiverSC.m} (line 55).}, label={lst:bandpass}]
+\begin{lstlisting}[caption={Our first noise filter in \texttt{receiverSC.m} (line 55).}, label={lst:bandpass}]
 yFiltered = bandpass(yDSO, [fc - 0.875*Rs, fc + 0.875*Rs], Fs);
 \end{lstlisting}
 
-    \item \missing{effect of the filter on the power spectrum, how we tuned the parameters, and the final filter details (passband, steepness, stopband attenuation).}
+    \item We tested the filter on the Module 5 captures at 1.5 m, since the transmitter did not change (\cref{fig:psd-filter}). With the default settings (steepness 0.85, stopband attenuation 60 dB), the power in the signal band does not change, the noise floor 100--400 MHz from the carrier drops by about 11 dB and the one farther away by about 43 dB, and the strong components at 93 MHz, 0.6--0.8 GHz and 2.0--2.2 GHz disappear. Raising the steepness to 0.95 makes the transition band narrower, so the floor next to the signal drops by about 22 dB instead, still without touching the signal band. We did not go higher because the filter gets longer as the steepness approaches 1, and 0.95 already removes the noise next to the band. We wrote the passband edges rounded outward to 2.378 and 2.422 GHz ($f_c \pm 0.875R_s$ is 2.378125 to 2.421875 GHz), so the whole signal band stays inside. Our final filter has a passband of 2.378--2.422 GHz, a steepness of 0.95 and 60 dB of stopband attenuation (\cref{lst:bandpass-tuned}).
+
+\begin{lstlisting}[caption={Our tuned noise filter in \texttt{receiverSC.m}, used by the receiver.}, label={lst:bandpass-tuned}]
+yFiltered = bandpass(yDSO, [2.378e9 2.422e9], Fs, Steepness=0.95);
+\end{lstlisting}
 
     \begin{figure}[H]
         \centering
         \fig{\linewidth}{figures/A/psd_filter.pdf}
-        \caption{Power spectrum before and after the bandpass filter. \missing{capture}}
+        \caption{Power spectrum of the 16-PSK Gray capture at 1.5 m before filtering, with the default filter (steepness 0.85) and with the tuned filter (steepness 0.95), as plotted by \texttt{receiverSC.m}.}
         \label{fig:psd-filter}
     \end{figure}
 
@@ -143,28 +147,38 @@ Nothing changes in the transmitter: with our setup, pre-distortion does not make
 
 \subsection*{Receiver}
 \begin{enumerate}[resume]
-    \item \missing{position of the equalization block in \texttt{receiverSC.m}, and on what it works (samples or symbols, pilot as training).}
+    \item The equalization block is in the \texttt{Equalization} section of \texttt{receiverSC.m} (line 95), after the correlation receiver and before the symbol demapping (\cref{lst:eq-initial}). It works on symbols: it uses the received and the known pilot symbols to estimate the channel, and then applies the equalizer to the received data symbols before they are demapped.
 
-    \item \missing{structure of \texttt{equalization.m}: inputs, LS estimation, ZF/MMSE branch, \texttt{filter()} with \texttt{e}.}
+\begin{lstlisting}[caption={Equalization block of the given \texttt{receiverSC.m} (lines 93--95).}, label={lst:eq-initial}]
+%% Equalization
+% Module 6.
+symbolsDataEqualized = symbolsDataReceived; %Module 6: update this line accordingly
+\end{lstlisting}
+
+    \item \texttt{equalization.m} takes the received data, the received pilot, the known pilot, the equalizer type and $L$. It first estimates the channel impulse response \texttt{h} with LS from the pilots (lines 15--17) and its frequency response \texttt{H} (line 18). Then it builds the equalizer \texttt{E} in the frequency domain, ZF or MMSE (lines 20--29), takes it back to time with \texttt{ifft()} to get the FIR filter \texttt{e} (line 31), and filters the received data with it (line 32). We call it at line 95 of \texttt{receiverSC.m} (\cref{lst:eq-call}).
+
+\begin{lstlisting}[caption={Our equalization call in \texttt{receiverSC.m} (line 95).}, label={lst:eq-call}]
+symbolsDataEqualized = equalization(symbolsDataReceived, symbolsPilotReceived, symbolsPilot, equalizerType, L);
+\end{lstlisting}
 
     We define two equalizers: Type 1, zero forcing (ZF), and Type 2, minimum mean square error (MMSE).
 
 \subsubsection*{LS Channel Estimation}
 
-    \item \missing{LS estimator $\mathbf{h} = (\mathbf{S}^H\mathbf{S})^{-1}\mathbf{S}^H\mathbf{r}$ with \texttt{'} and \texttt{\textbackslash}~\cite{ctranspose,mldivide}, line 17.}
+    \item We implemented the LS estimator $\mathbf{h} = (\mathbf{S}^H\mathbf{S})^{-1}\mathbf{S}^H\mathbf{r}$ at line 17 of \texttt{equalization.m} (\cref{lst:ls}). \texttt{'} gives the conjugate transpose~\cite{ctranspose}, and \texttt{\textbackslash} solves the system without computing the inverse explicitly~\cite{mldivide}. \texttt{S} is the convolution matrix of the known pilot, cut to the pilot length, so \texttt{h} is the $L$-tap channel that best maps the known pilot onto the received one.
 
-\begin{lstlisting}[caption={LS channel estimation in \texttt{equalization.m}.}, label={lst:ls}]
-h = NaN; % MISSING
+\begin{lstlisting}[caption={LS channel estimation in \texttt{equalization.m} (line 17).}, label={lst:ls}]
+h = (S' * S) \ (S' * r); % LS estimate h = (S^H S)^-1 S^H r.
 \end{lstlisting}
 
-    \item \missing{role of $L$ in the estimation; lengths of \texttt{h} and \texttt{H}.}
+    \item $L$ is the number of taps we assume for the channel impulse response, i.e., how many symbols of multipath memory the estimate can capture. \texttt{S} has one column per tap ($60 \times L$), so the LS estimate \texttt{h} has $L$ taps, and \texttt{H = fft(h)} also has $L$ points. A larger $L$ can model longer echoes, but it estimates more unknowns from the same 60 pilot symbols, so the estimate gets noisier.
 
 \subsubsection*{ZF Channel Equalization}
 
-    \item \missing{ZF equalizer in the frequency domain, line 21; length of \texttt{e}.}
+    \item We implemented the ZF equalizer at line 21 of \texttt{equalization.m} as the inverse of the estimated channel at each frequency, so the channel times the equalizer is 1 across the band (\cref{lst:zf}). Since \texttt{E} has the same $L$ points as \texttt{H}, \texttt{e = ifft(E)} is an FIR filter with $L$ taps. Inverting the channel on only $L$ points is an approximation, because the true inverse of an FIR channel is usually longer than $L$ taps; a larger $L$ brings it closer.
 
-\begin{lstlisting}[caption={ZF equalizer in \texttt{equalization.m}.}, label={lst:zf}]
-E = NaN; % MISSING
+\begin{lstlisting}[caption={ZF equalizer in \texttt{equalization.m} (line 21).}, label={lst:zf}]
+E = 1 ./ H; % Zero Forcing (ZF) Channel Equalizer.
 \end{lstlisting}
 
     \item \missing{constellation, BER and EVM of 16-PSK and 32-PSK with and without ZF for several $L$.}
@@ -191,10 +205,10 @@ E = NaN; % MISSING
 
 \subsubsection*{MMSE Channel Equalization}
 
-    \item \missing{MMSE equalizer in the frequency domain, line 26, with \texttt{sigma2} and \texttt{Ps} (lines 23 and 24), \texttt{conj()} and \texttt{abs()}.}
+    \item We implemented the MMSE equalizer at line 26 of \texttt{equalization.m} (\cref{lst:mmse}). It uses the noise variance \texttt{sigma2}, estimated from the LS residual (line 23), and the pilot power \texttt{Ps} (line 24). Where the channel is strong it behaves like ZF, and where it is weak the term \texttt{sigma2/Ps} keeps it from boosting the noise as ZF does.
 
-\begin{lstlisting}[caption={MMSE equalizer in \texttt{equalization.m}.}, label={lst:mmse}]
-E = NaN; % MISSING
+\begin{lstlisting}[caption={MMSE equalizer in \texttt{equalization.m} (line 26).}, label={lst:mmse}]
+E = conj(H) ./ (abs(H).^2 + sigma2 / Ps); % Minimum Mean Square Error (MMSE) Equalizer.
 \end{lstlisting}
 
     \item \missing{constellation, BER and EVM of 16-PSK and 32-PSK with and without MMSE for several $L$; comparison with ZF.}
@@ -244,9 +258,9 @@ E = NaN; % MISSING
 \end{enumerate}
 
 \begin{thebibliography}{9}
-    \bibitem{bandpass} MathWorks, ``bandpass: Bandpass-filter signals,'' MATLAB Signal Processing Toolbox documentation (R2025b). [Online]. Available: \url{https://www.mathworks.com/help/signal/ref/bandpass.html}
-    \bibitem{ctranspose} MathWorks, ``ctranspose, ': Complex conjugate transpose,'' MATLAB documentation (R2025b). [Online]. Available: \url{https://www.mathworks.com/help/matlab/ref/ctranspose.html}
-    \bibitem{mldivide} MathWorks, ``mldivide, \textbackslash: Solve systems of linear equations $Ax = B$ for $x$,'' MATLAB documentation (R2025b). [Online]. Available: \url{https://www.mathworks.com/help/matlab/ref/mldivide.html}
+    \bibitem{bandpass} MathWorks, ``bandpass: Bandpass-filter signals,'' MATLAB Signal Processing Toolbox documentation (R2026b). [Online]. Available: \url{https://www.mathworks.com/help/signal/ref/bandpass.html}
+    \bibitem{ctranspose} MathWorks, ``ctranspose, ': Complex conjugate transpose,'' MATLAB documentation (R2026b). [Online]. Available: \url{https://www.mathworks.com/help/matlab/ref/double.ctranspose.html}
+    \bibitem{mldivide} MathWorks, ``mldivide, \textbackslash: Solve systems of linear equations $Ax = B$ for $x$,'' MATLAB documentation (R2026b). [Online]. Available: \url{https://www.mathworks.com/help/matlab/ref/double.mldivide.html}
 \end{thebibliography}
 
 \end{document}

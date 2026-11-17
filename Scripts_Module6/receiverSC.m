@@ -25,7 +25,9 @@ nPilotSymbols = 60;     % Number of pilot symbols.
 nDataSymbols  = 60 * 5; % Number of data symbols.
 
 %% Load captured received signal
-filename = "your_signal.mat"; % Update with your file name.
+%Q3%%%%%
+filename = "../../../../module5/Scripts_Module5/captures/wireless/6b_16psk_gray.mat"; % Module 5 capture: 16-PSK Gray, 1.5 m.
+%Q3%%%%%
 load(filename);      % Load file.
 t    = Time_s;       % [s] Time vector.
 yDSO = Trace_1_VOLT; % [V] Received signal vector.
@@ -52,16 +54,26 @@ symbolsData = symbolMapping(bitsData, M, modScheme);
 
 %% Noise Filtering
 % Module 6.
-yFiltered = NaN;
+%Q2%%%%%
+yFilteredDefault = bandpass(yDSO, [fc - 0.875*Rs, fc + 0.875*Rs], Fs); % Default filter (steepness 0.85).
+%Q2%%%%%
+%Q3%%%%%
+yFiltered = bandpass(yDSO, [2.378e9 2.422e9], Fs, Steepness=0.95); % Tuned filter, used by the receiver.
+%Q3%%%%%
 
 P_before = frequencyDomain(yDSO, Fs, "single");
 [P_after, f] = frequencyDomain(yFiltered, Fs, "single");
+P_default = frequencyDomain(yFilteredDefault, Fs, "single"); %Q3
 figure();
 plot(f / 1e9, 10 * log10(P_before)); hold("on");
+plot(f / 1e9, 10 * log10(P_default)); %Q3
 plot(f / 1e9, 10 * log10(P_after));
 xlim([f(1) f(end)] / 1e9);
 xlabel("Frequency (GHz)"); ylabel("Power Spectrum (dB)");
-ylegend("Before filtering", "After filtering");
+%Q3%%%%%
+legend("Before filtering", "Default filter", "Tuned filter");
+exportgraphics(gcf, "psd_filter.pdf");
+%Q3%%%%%
 
 %% Frame synchronization
 nHeaderSamples = numel(xHeader);
