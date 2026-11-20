@@ -1,8 +1,10 @@
 # Old version: kept only locally.
 module6-old-version/
 
-# DSO captures (~16 MB each): kept only locally.
-Scripts_Module6/captures/
+# DSO captures (~16 MB each): kept ONLY locally, not on GitHub/Overleaf.
+# Deleting them locally deletes them for good: see Scripts_Module6/captures/00_READ_BEFORE_DELETING.md.
+Scripts_Module6/captures/*
+!Scripts_Module6/captures/00_READ_BEFORE_DELETING.md
 
 # Assignment handout.
 Laboratory Assignment 5 (Module 6).pdf

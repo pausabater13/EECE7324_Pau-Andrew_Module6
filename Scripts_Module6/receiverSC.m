@@ -7,15 +7,19 @@ close("all");   % Close all figures.
 addpath("functions/"); % Add functions folder to search path.
 
 %% Parameters
-M = NaN;           % Modulation order.
-modScheme = NaN;     % Modulation scheme ("psk" or "qam").
+%Q4%%%%%
+M = 16;           % Modulation order.
+modScheme = "psk";  % Modulation scheme ("psk" or "qam").
+%Q4%%%%%
 
 Rs = 25e6;  % [symbol/s] Symbol rate.
 Fs = 20e9;  % [Sa/s] Sampling frequency.
 fc = 2.4e9;  % [Hz] Carrier Frequency.
 
-equalizerType = NaN;    % Equalizer type ("ZF" or "MMSE").
-L = NaN;                % Length of the equalizer.
+%Q12%%%%%
+equalizerType = "zf";   % Equalizer type ("zf" or "mmse").
+L = 10;                 % Length of the equalizer.
+%Q12%%%%%
 
 sps = Fs/Rs; % [Sa/symbol] Number of samples per symbol.
 
@@ -25,9 +29,9 @@ nPilotSymbols = 60;     % Number of pilot symbols.
 nDataSymbols  = 60 * 5; % Number of data symbols.
 
 %% Load captured received signal
-%Q3%%%%%
-filename = "../../../../module5/Scripts_Module5/captures/wireless/6b_16psk_gray.mat"; % Module 5 capture: 16-PSK Gray, 1.5 m.
-%Q3%%%%%
+%Q4%%%%%
+filename = "captures/wireless/6b_16psk_gray.mat"; % Update with your file name.
+%Q4%%%%%
 load(filename);      % Load file.
 t    = Time_s;       % [s] Time vector.
 yDSO = Trace_1_VOLT; % [V] Received signal vector.
@@ -54,25 +58,19 @@ symbolsData = symbolMapping(bitsData, M, modScheme);
 
 %% Noise Filtering
 % Module 6.
-%Q2%%%%%
-yFilteredDefault = bandpass(yDSO, [fc - 0.875*Rs, fc + 0.875*Rs], Fs); % Default filter (steepness 0.85).
-%Q2%%%%%
 %Q3%%%%%
-yFiltered = bandpass(yDSO, [2.378e9 2.422e9], Fs, Steepness=0.95); % Tuned filter, used by the receiver.
+yFiltered = bandpass(yDSO, [fc - 0.875*Rs, fc + 0.875*Rs], Fs, Steepness=0.95); % Passband from Step 2, steepness from Step 3.
 %Q3%%%%%
 
 P_before = frequencyDomain(yDSO, Fs, "single");
 [P_after, f] = frequencyDomain(yFiltered, Fs, "single");
-P_default = frequencyDomain(yFilteredDefault, Fs, "single"); %Q3
 figure();
 plot(f / 1e9, 10 * log10(P_before)); hold("on");
-plot(f / 1e9, 10 * log10(P_default)); %Q3
 plot(f / 1e9, 10 * log10(P_after));
 xlim([f(1) f(end)] / 1e9);
 xlabel("Frequency (GHz)"); ylabel("Power Spectrum (dB)");
 %Q3%%%%%
-legend("Before filtering", "Default filter", "Tuned filter");
-exportgraphics(gcf, "psd_filter.pdf");
+legend("Before filtering", "After filtering"); % ylegend is not a MATLAB function.
 %Q3%%%%%
 
 %% Frame synchronization
@@ -103,7 +101,9 @@ symbolsDataReceived  = correlationReceiver(rData, sps, nDataSymbols);
 
 %% Equalization
 % Module 6.
-symbolsDataEqualized = symbolsDataReceived; %Module 6: update this line accordingly
+%Q8%%%%%
+symbolsDataEqualized = equalization(symbolsDataReceived, symbolsPilotReceived, symbolsPilot, equalizerType, L);
+%Q8%%%%%
 
 %% Symbol demapping
 bitsReceived = symbolDemapping(symbolsDataEqualized, M, modScheme);

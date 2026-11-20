@@ -65,7 +65,7 @@
 \section*{Part A: Filtering}
 %=====================================================================
 \subsection*{Transmitter}
-Nothing changes in the transmitter: the noise filtering is done at the receiver. We reuse the Module 5 waveforms (\missing{list of \texttt{.WAVEFORM} files used: 16/32-PSK and 16/32-QAM, Gray}).
+Nothing changes in the transmitter: the noise filtering is done at the receiver. Since the transmitter did not change, we reused the Module 5 wireless captures at 1.5 m of the Gray waveforms \texttt{16psk\_25SR\_gray}, \texttt{32psk\_25SR\_gray}, \texttt{16qam\_25SR\_gray} and \texttt{32qam\_25SR\_gray} (one frame of 300 data symbols each).
 
 \subsection*{Receiver}
 \begin{enumerate}
@@ -73,68 +73,68 @@ Nothing changes in the transmitter: the noise filtering is done at the receiver.
 
     \item \texttt{bandpass(x, fpass, fs)} takes the signal, the passband edges in Hz and the sampling frequency, and optionally the \texttt{Steepness} and \texttt{StopbandAttenuation} (0.85 and 60 dB by default)~\cite{bandpass}. Our signal is centered at $f_c = 2.4$ GHz and occupies $B = (1+\beta)R_s = 1.75 \cdot 25 = 43.75$ MHz, so we set the passband to $f_c \pm B/2 = f_c \pm 0.875R_s$, about 2.378 to 2.422 GHz, with the default steepness and attenuation (\cref{lst:bandpass}).
 
-\begin{lstlisting}[caption={Our first noise filter in \texttt{receiverSC.m} (line 55).}, label={lst:bandpass}]
+\begin{lstlisting}[caption={Our first noise filter for line 55 of \texttt{receiverSC.m}, before tuning it in Step 3.}, label={lst:bandpass}]
 yFiltered = bandpass(yDSO, [fc - 0.875*Rs, fc + 0.875*Rs], Fs);
 \end{lstlisting}
 
-    \item We tested the filter on the Module 5 captures at 1.5 m, since the transmitter did not change (\cref{fig:psd-filter}). With the default settings (steepness 0.85, stopband attenuation 60 dB), the power in the signal band does not change, the noise floor 100--400 MHz from the carrier drops by about 11 dB and the one farther away by about 43 dB, and the strong components at 93 MHz, 0.6--0.8 GHz and 2.0--2.2 GHz disappear. Raising the steepness to 0.95 makes the transition band narrower, so the floor next to the signal drops by about 22 dB instead, still without touching the signal band. We did not go higher because the filter gets longer as the steepness approaches 1, and 0.95 already removes the noise next to the band. We wrote the passband edges rounded outward to 2.378 and 2.422 GHz ($f_c \pm 0.875R_s$ is 2.378125 to 2.421875 GHz), so the whole signal band stays inside. Our final filter has a passband of 2.378--2.422 GHz, a steepness of 0.95 and 60 dB of stopband attenuation (\cref{lst:bandpass-tuned}).
+    \item We tested the filter on the Module 5 capture of 16-PSK at 1.5 m (\cref{fig:psd-filter}). With the default settings (steepness 0.85, stopband attenuation 60 dB), the signal band does not change and the spectrum far from it drops by more than 40 dB, including the components at 93 MHz, 0.6--0.8 GHz and 2.0--2.2 GHz. Next to the band, 100--400 MHz from the carrier, the noise floor only drops 11.5 dB, because the transition band is wide. With a steepness of 0.95 it is narrower, and the floor there drops 22.6 dB (both values printed by \texttt{reportResults.m}). We did not go higher because the filter gets longer as the steepness approaches 1~\cite{bandpass}. Our final filter keeps the passband $f_c \pm 0.875R_s$, with a steepness of 0.95 and 60 dB of stopband attenuation (\cref{lst:bandpass-tuned}).
 
 \begin{lstlisting}[caption={Our tuned noise filter in \texttt{receiverSC.m}, used by the receiver.}, label={lst:bandpass-tuned}]
-yFiltered = bandpass(yDSO, [2.378e9 2.422e9], Fs, Steepness=0.95);
+yFiltered = bandpass(yDSO, [fc - 0.875*Rs, fc + 0.875*Rs], Fs, Steepness=0.95);
 \end{lstlisting}
 
     \begin{figure}[H]
         \centering
         \fig{\linewidth}{figures/A/psd_filter.pdf}
-        \caption{Power spectrum of the 16-PSK Gray capture at 1.5 m before filtering, with the default filter (steepness 0.85) and with the tuned filter (steepness 0.95), as plotted by \texttt{receiverSC.m}.}
+        \caption{Power spectrum of the 16-PSK Gray capture at 1.5 m before filtering, with the default filter (steepness 0.85) and with the tuned filter (steepness 0.95), made with \texttt{reportResults.m}.}
         \label{fig:psd-filter}
     \end{figure}
 
-    \item \missing{setup and distance; BER of 16-PSK and 32-PSK over the air with and without filtering.}
+    \item We ran the receiver on the 16-PSK and 32-PSK captures at 1.5 m with and without the filter, with \texttt{reportResults.m}, which follows the same steps as \texttt{receiverSC.m} (\cref{tab:filter-psk,fig:rx-psk-filter}). Without equalization, the given demapper does not scale the symbols, so here we only scale them to unit average power, as in Module 5. The BER is the same with and without the filter, 0.041 for 16-PSK and 0.129 for 32-PSK (SER of 16\% and 60\%), and the EVM and the frame start do not change either. The handout suggests increasing the distance to lower the SNR. We did not: these captures already have errors, and they come from multipath (Part B), not from noise, so a lower SNR would only add in-band noise, which the bandpass filter cannot remove either.
 
     \begin{table}[H]
         \centering
         \small
-        \begin{tabular}{c|cc|cc}
+        \begin{tabular}{c|cc|cc|cc}
             \hline
-            \multirow{2}{*}{\shortstack{Modulation\\order}} & \multicolumn{2}{c|}{BER} & \multicolumn{2}{c}{EVM (\%)} \\
-             & No filter & Filter & No filter & Filter \\
+            \multirow{2}{*}{\shortstack{Modulation\\order}} & \multicolumn{2}{c|}{BER} & \multicolumn{2}{c|}{EVM (\%)} & \multicolumn{2}{c}{Frame start (sample)} \\
+             & No filter & Filter & No filter & Filter & No filter & Filter \\
             \hline
             \inputtable{tables/filter_psk.tex}
         \end{tabular}
-        \caption{16-PSK and 32-PSK over the air, with and without the noise filter.}
+        \caption{16-PSK and 32-PSK at 1.5 m, with and without the noise filter (one frame, 300 symbols).}
         \label{tab:filter-psk}
     \end{table}
 
     \begin{figure}[H]
         \centering
-        \fig{\linewidth}{figures/A/rx_psk_filter.pdf}
-        \caption{Received 16-PSK and 32-PSK constellations without (left) and with (right) the noise filter.}
+        \fig{0.55\linewidth}{figures/A/rx_psk_filter.pdf}
+        \caption{Received 16-PSK and 32-PSK constellations at 1.5 m without (left) and with (right) the noise filter: correct symbols (blue), wrong symbols (red) and ideal points (black).}
         \label{fig:rx-psk-filter}
     \end{figure}
 
-    \item \missing{conclusion: is out-of-band noise and interference a major problem for our signals?}
+    \item No. The filter removes a lot of out-of-band noise and interference (Step 3), but this does not change the errors, because the IQ demodulation lowpass and the correlation receiver already reject it. The synchronization does not change either: the frame starts at the same sample with and without the filter (\texttt{bandpass()} compensates its own delay~\cite{bandpass}), since at 1.5 m the header correlation peak is already clear. Our errors come from inside the band, from multipath and distortion, which is what the equalizer has to fix (Part B).
 
-    \item \missing{same study for 16-QAM and 32-QAM.}
+    \item The result is the same for 16-QAM and 32-QAM (\cref{tab:filter-qam,fig:rx-qam-filter}): a BER of 0.025 and 0.005 (SER of 10\% and 2.3\%) with and without the filter, and the same EVM.
 
     \begin{table}[H]
         \centering
         \small
-        \begin{tabular}{c|cc|cc}
+        \begin{tabular}{c|cc|cc|cc}
             \hline
-            \multirow{2}{*}{\shortstack{Modulation\\order}} & \multicolumn{2}{c|}{BER} & \multicolumn{2}{c}{EVM (\%)} \\
-             & No filter & Filter & No filter & Filter \\
+            \multirow{2}{*}{\shortstack{Modulation\\order}} & \multicolumn{2}{c|}{BER} & \multicolumn{2}{c|}{EVM (\%)} & \multicolumn{2}{c}{Frame start (sample)} \\
+             & No filter & Filter & No filter & Filter & No filter & Filter \\
             \hline
             \inputtable{tables/filter_qam.tex}
         \end{tabular}
-        \caption{16-QAM and 32-QAM over the air, with and without the noise filter.}
+        \caption{16-QAM and 32-QAM at 1.5 m, with and without the noise filter (one frame, 300 symbols).}
         \label{tab:filter-qam}
     \end{table}
 
     \begin{figure}[H]
         \centering
-        \fig{\linewidth}{figures/A/rx_qam_filter.pdf}
-        \caption{Received 16-QAM and 32-QAM constellations without (left) and with (right) the noise filter.}
+        \fig{0.55\linewidth}{figures/A/rx_qam_filter.pdf}
+        \caption{Received 16-QAM and 32-QAM constellations at 1.5 m without (left) and with (right) the noise filter.}
         \label{fig:rx-qam-filter}
     \end{figure}
 \end{enumerate}
@@ -147,17 +147,17 @@ Nothing changes in the transmitter: with our setup, pre-distortion does not make
 
 \subsection*{Receiver}
 \begin{enumerate}[resume]
-    \item The equalization block is in the \texttt{Equalization} section of \texttt{receiverSC.m} (line 95), after the correlation receiver and before the symbol demapping (\cref{lst:eq-initial}). It works on symbols: it uses the received and the known pilot symbols to estimate the channel, and then applies the equalizer to the received data symbols before they are demapped.
+    \item The equalization block is in the \texttt{Equalization} section of \texttt{receiverSC.m} (line 94), after the correlation receiver and before the symbol demapping (\cref{lst:eq-initial}). It works on symbols: it uses the received and the known pilot symbols to estimate the channel, and then applies the equalizer to the received data symbols before they are demapped.
 
-\begin{lstlisting}[caption={Equalization block of the given \texttt{receiverSC.m} (lines 93--95).}, label={lst:eq-initial}]
+\begin{lstlisting}[caption={Equalization block of the given \texttt{receiverSC.m} (lines 92--94).}, label={lst:eq-initial}]
 %% Equalization
 % Module 6.
 symbolsDataEqualized = symbolsDataReceived; %Module 6: update this line accordingly
 \end{lstlisting}
 
-    \item \texttt{equalization.m} takes the received data, the received pilot, the known pilot, the equalizer type and $L$. It first estimates the channel impulse response \texttt{h} with LS from the pilots (lines 15--17) and its frequency response \texttt{H} (line 18). Then it builds the equalizer \texttt{E} in the frequency domain, ZF or MMSE (lines 20--29), takes it back to time with \texttt{ifft()} to get the FIR filter \texttt{e} (line 31), and filters the received data with it (line 32). We call it at line 95 of \texttt{receiverSC.m} (\cref{lst:eq-call}).
+    \item \texttt{equalization.m} takes the received data, the received pilot, the known pilot, the equalizer type and $L$. It first estimates the channel impulse response \texttt{h} with LS from the pilots (lines 15--17) and its frequency response \texttt{H} (line 18). Then it builds the equalizer \texttt{E} in the frequency domain, ZF or MMSE (lines 20--29), takes it back to time with \texttt{ifft()} to get the FIR filter \texttt{e} (line 31), and filters the received data with it (line 32). We call it at line 94 of \texttt{receiverSC.m} (\cref{lst:eq-call}).
 
-\begin{lstlisting}[caption={Our equalization call in \texttt{receiverSC.m} (line 95).}, label={lst:eq-call}]
+\begin{lstlisting}[caption={Our equalization call in \texttt{receiverSC.m} (line 94).}, label={lst:eq-call}]
 symbolsDataEqualized = equalization(symbolsDataReceived, symbolsPilotReceived, symbolsPilot, equalizerType, L);
 \end{lstlisting}
 
@@ -181,7 +181,7 @@ h = (S' * S) \ (S' * r); % LS estimate h = (S^H S)^-1 S^H r.
 E = 1 ./ H; % Zero Forcing (ZF) Channel Equalizer.
 \end{lstlisting}
 
-    \item \missing{constellation, BER and EVM of 16-PSK and 32-PSK with and without ZF for several $L$.}
+    \item We used the tuned filter and ZF with $L = 1$, 2, 3, 5, 10 and 20 (\cref{tab:zf-psk,fig:rx-psk-zf}). With $L = 1$ the equalizer is a single complex gain, so it only corrects amplitude and phase, and the errors stay. From $L = 3$ for 16-PSK and $L = 5$ for 32-PSK there are no errors, and at $L = 10$ the EVM drops from 18.5\% to 9.1\% and from 21.4\% to 5.0\%. With $L = 20$ the EVM rises a bit and 16-PSK has one wrong symbol again, because the same 60 pilots now estimate 20 taps (Step 10). So the errors at 1.5 m came from multipath spanning a few symbols, and $L$ between 5 and 10 is enough.
 
     \begin{table}[H]
         \centering
@@ -192,14 +192,14 @@ E = 1 ./ H; % Zero Forcing (ZF) Channel Equalizer.
             \hline
             \inputtable{tables/zf_psk.tex}
         \end{tabular}
-        \caption{16-PSK and 32-PSK without equalization ($L = $ --) and with ZF for several $L$.}
+        \caption{16-PSK and 32-PSK without equalization ($L = $ --, symbols only scaled to unit power) and with ZF for several $L$.}
         \label{tab:zf-psk}
     \end{table}
 
     \begin{figure}[H]
         \centering
         \fig{\linewidth}{figures/B/rx_psk_zf.pdf}
-        \caption{Received 16-PSK and 32-PSK constellations without equalization and with ZF for several $L$.}
+        \caption{Received 16-PSK and 32-PSK constellations at 1.5 m without equalization and with ZF for $L = 1$, 3 and 10.}
         \label{fig:rx-psk-zf}
     \end{figure}
 
@@ -211,7 +211,7 @@ E = 1 ./ H; % Zero Forcing (ZF) Channel Equalizer.
 E = conj(H) ./ (abs(H).^2 + sigma2 / Ps); % Minimum Mean Square Error (MMSE) Equalizer.
 \end{lstlisting}
 
-    \item \missing{constellation, BER and EVM of 16-PSK and 32-PSK with and without MMSE for several $L$; comparison with ZF.}
+    \item MMSE gives practically the same results as ZF (\cref{tab:mmse-psk,fig:rx-psk-mmse}): the same BER for every $L$, except for 32-PSK at $L = 2$ and 3, where they differ by one or two bits, and an EVM at most 1.2 percentage points lower (at $L = 1$). Our SNR is high, so \texttt{sigma2/Ps} is small and MMSE behaves like ZF. It would only make a clear difference at a low SNR, where ZF amplifies the noise at the frequencies where the channel is weak.
 
     \begin{table}[H]
         \centering
@@ -222,18 +222,18 @@ E = conj(H) ./ (abs(H).^2 + sigma2 / Ps); % Minimum Mean Square Error (MMSE) Equ
             \hline
             \inputtable{tables/mmse_psk.tex}
         \end{tabular}
-        \caption{16-PSK and 32-PSK without equalization ($L = $ --) and with MMSE for several $L$.}
+        \caption{16-PSK and 32-PSK without equalization ($L = $ --, symbols only scaled to unit power) and with MMSE for several $L$.}
         \label{tab:mmse-psk}
     \end{table}
 
     \begin{figure}[H]
         \centering
         \fig{\linewidth}{figures/B/rx_psk_mmse.pdf}
-        \caption{Received 16-PSK and 32-PSK constellations without equalization and with MMSE for several $L$.}
+        \caption{Received 16-PSK and 32-PSK constellations at 1.5 m without equalization and with MMSE for $L = 1$, 3 and 10.}
         \label{fig:rx-psk-mmse}
     \end{figure}
 
-    \item \missing{same study (ZF and MMSE) for 16-QAM and 32-QAM.}
+    \item For 16-QAM and 32-QAM (\cref{tab:eq-qam,fig:rx-qam-eq}), the equalizer also corrects the amplitude, so the symbols no longer need to be scaled before \texttt{qamdemod()}. The errors disappear from $L = 3$ for 16-QAM and $L = 2$ for 32-QAM, and at $L = 10$ the EVM drops from 23.2\% to 9.9\% (ZF) and 9.7\% (MMSE) for 16-QAM, and from 13.8\% to 6.0\% for 32-QAM. As for M-PSK, ZF and MMSE are almost the same.
 
     \begin{table}[H]
         \centering
@@ -245,17 +245,27 @@ E = conj(H) ./ (abs(H).^2 + sigma2 / Ps); % Minimum Mean Square Error (MMSE) Equ
             \hline
             \inputtable{tables/eq_qam.tex}
         \end{tabular}
-        \caption{16-QAM and 32-QAM without equalization ($L = $ --) and with ZF and MMSE for several $L$.}
+        \caption{16-QAM and 32-QAM without equalization ($L = $ --, symbols only scaled to unit power) and with ZF and MMSE for several $L$.}
         \label{tab:eq-qam}
     \end{table}
 
     \begin{figure}[H]
         \centering
-        \fig{\linewidth}{figures/B/rx_qam_eq.pdf}
-        \caption{Received 16-QAM and 32-QAM constellations without equalization and with ZF and MMSE.}
+        \fig{0.8\linewidth}{figures/B/rx_qam_eq.pdf}
+        \caption{Received 16-QAM and 32-QAM constellations at 1.5 m without equalization and with ZF and MMSE for $L = 10$.}
         \label{fig:rx-qam-eq}
     \end{figure}
 \end{enumerate}
+
+%=====================================================================
+\section*{Changes to the Given Code}
+%=====================================================================
+Our changes to the given scripts are only the ones asked in the steps, each between two \texttt{\%Q}$n$\texttt{\%\%\%\%\%} lines, where $n$ is the step:
+\begin{itemize}
+    \item \texttt{receiverSC.m}: the settings \texttt{M}, \texttt{modScheme} and the capture file (Step 4), \texttt{equalizerType} and \texttt{L} (Step 12); the noise filter at line 55 (Steps 2 and 3); \texttt{ylegend} changed to \texttt{legend} in the spectrum plot, since \texttt{ylegend} is not a MATLAB function and the script stopped there (Step 3); and the equalizer call at line 94 (Step 8).
+    \item \texttt{equalization.m}: the LS estimator, ZF and MMSE at lines 17, 21 and 26 (Steps 9, 11 and 13).
+\end{itemize}
+All the figures and tables of this report are made by our script \texttt{reportResults.m}, which runs the same steps as \texttt{receiverSC.m} for every capture and setting, without changing the given scripts. It needs the four Module 5 captures in \texttt{captures/wireless/}.
 
 \begin{thebibliography}{9}
     \bibitem{bandpass} MathWorks, ``bandpass: Bandpass-filter signals,'' MATLAB Signal Processing Toolbox documentation (R2026b). [Online]. Available: \url{https://www.mathworks.com/help/signal/ref/bandpass.html}
