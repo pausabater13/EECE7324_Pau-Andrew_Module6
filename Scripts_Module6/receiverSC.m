@@ -30,7 +30,7 @@ nDataSymbols  = 60 * 5; % Number of data symbols.
 
 %% Load captured received signal
 %Q4%%%%%
-filename = "captures/wireless/6b_16psk_gray.mat"; % Update with your file name.
+filename = "../captures/wireless/6b_16psk_gray.mat"; % Update with your file name.
 %Q4%%%%%
 load(filename);      % Load file.
 t    = Time_s;       % [s] Time vector.

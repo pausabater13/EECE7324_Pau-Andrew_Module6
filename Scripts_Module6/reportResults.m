@@ -1,6 +1,6 @@
 % Figures and tables of the report. Not part of the given code.
 % Same steps and functions as receiverSC.m, for every capture and setting of the report.
-% Run from Scripts_Module6. Needs the four captures in captures/wireless/ (see 00_READ_BEFORE_DELETING.md).
+% Run from Scripts_Module6. Needs the four captures in ../captures/wireless/.
 
 clear(); close("all"); addpath("functions/");
 p.Rs = 25e6; p.Fs = 20e9; p.fc = 2.4e9; p.sps = p.Fs / p.Rs; p.nPilot = 60; p.nData = 300; % As in receiverSC.m.
@@ -10,7 +10,7 @@ caps = {"6b_16psk_gray", 16, "psk"; "6b_32psk_gray", 32, "psk"; "18b_16qam_gray"
 Ls = [1 2 3 5 10 50];
 
 %Q3%%%%%
-y = load("captures/wireless/6b_16psk_gray.mat").Trace_1_VOLT;
+y = load("../captures/wireless/6b_16psk_gray.mat").Trace_1_VOLT;
 [P0, f] = frequencyDomain(y, p.Fs, "single");
 P1 = frequencyDomain(bandpass(y, p.band, p.Fs), p.Fs, "single");                  % Default steepness (0.85).
 P2 = frequencyDomain(bandpass(y, p.band, p.Fs, Steepness=0.95), p.Fs, "single");  % Our steepness.
@@ -26,7 +26,7 @@ exportgraphics(fig, "../figures/A/psd_filter.pdf");
 %% Receiver up to the equalizer, once per capture, without and with the filter
 for c = 1:4
     for useFilter = [false true]
-        rx(c, useFilter + 1) = front(p, "captures/wireless/" + caps{c, 1} + ".mat", caps{c, 2}, caps{c, 3}, useFilter);
+        rx(c, useFilter + 1) = front(p, "../captures/wireless/" + caps{c, 1} + ".mat", caps{c, 2}, caps{c, 3}, useFilter);
     end
 end
 
