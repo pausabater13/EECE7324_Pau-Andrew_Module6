@@ -113,7 +113,7 @@ yFiltered = bandpass(yDSO, [fc - 0.875*Rs, fc + 0.875*Rs], Fs, Steepness=0.95);
         \label{fig:rx-psk-filter}
     \end{figure}
 
-    \item No. The filter removes a lot of out-of-band noise and interference (Step 3), but this does not change the errors, because the IQ demodulation lowpass and the correlation receiver already reject it. The synchronization does not change either: the frame starts at the same sample with and without the filter (\texttt{bandpass()} compensates its own delay~\cite{bandpass}), since at 1.5 m the header correlation peak is already clear. Our errors come from inside the band, from multipath and distortion, which is what the equalizer has to fix (Part B).
+    \item No. The filter removes a lot of out-of-band noise and interference (Step 3), but this does not change the errors, because the IQ demodulation lowpass and the correlation receiver already reject it. The synchronization does not change either, as the frame starts at the same sample with and without the filter (\texttt{bandpass()} compensates its own delay~\cite{bandpass}), since at 1.5 m the header correlation peak is already clear. While a filter might Our errors come from inside the band, from multipath and distortion, which is what the equalizer has to fix (Part B).
 
     \item The result is the same for 16-QAM and 32-QAM (\cref{tab:filter-qam,fig:rx-qam-filter}): a BER of 0.025 and 0.005 (SER of 10\% and 2.3\%) with and without the filter, and the same EVM.
 
