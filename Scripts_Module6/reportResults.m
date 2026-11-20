@@ -7,7 +7,7 @@ p.Rs = 25e6; p.Fs = 20e9; p.fc = 2.4e9; p.sps = p.Fs / p.Rs; p.nPilot = 60; p.nD
 p.band = [p.fc - 0.875*p.Rs, p.fc + 0.875*p.Rs];                                       % Passband (Step 2).
 p.bits = eval(regexp(fileread("receiverSC.m"), "\[[01, ]+\]\.'", "match", "once"));   % Same bits as receiverSC.m.
 caps = {"6b_16psk_gray", 16, "psk"; "6b_32psk_gray", 32, "psk"; "18b_16qam_gray", 16, "qam"; "18b_32qam_gray", 32, "qam"};
-Ls = [1 2 3 5 10 50];
+Ls = [1 2 3 5 10 40 50];
 
 %Q3%%%%%
 y = load("../captures/wireless/6b_16psk_gray.mat").Trace_1_VOLT;
@@ -49,7 +49,7 @@ end
 
 psk = [1 2]; qam = [3 4]; % Rows of caps.
 filt = {false, NaN, NaN, "No filter"; true, NaN, NaN, "Filter"};
-eqL  = @(eq) {true, NaN, NaN, "No equalizer"; true, eq, 1, upper(eq) + ", L = 1"; true, eq, 3, upper(eq) + ", L = 3"; true, eq, 10, upper(eq) + ", L = 10"; true, eq, 50, upper(eq) + ", L = 50"};
+eqL  = @(eq) {true, NaN, NaN, "No equalizer"; true, eq, 1, upper(eq) + ", L = 1"; true, eq, 3, upper(eq) + ", L = 3"; true, eq, 10, upper(eq) + ", L = 10"; true, eq, 40, upper(eq) + ", L = 40"; true, eq, 50, upper(eq) + ", L = 50"};
 
 %Q4%%%%%
 plotGrid(res, caps, psk, filt, "../figures/A/rx_psk_filter.pdf");

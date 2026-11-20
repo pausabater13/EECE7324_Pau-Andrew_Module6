@@ -181,7 +181,7 @@ h = (S' * S) \ (S' * r); % LS estimate h = (S^H S)^-1 S^H r.
 E = 1 ./ H; % Zero Forcing (ZF) Channel Equalizer.
 \end{lstlisting}
 
-    \item We used the tuned filter and ZF with $L = 1$, 2, 3, 5, 10 and 50 (\cref{tab:zf-psk,fig:rx-psk-zf}). With $L = 1$ the equalizer is a single complex gain, so it only corrects amplitude and phase, and the errors stay. From $L = 3$ for 16-PSK and $L = 5$ for 32-PSK there are no errors, and at $L = 10$ the EVM drops from 18.5\% to 9.1\% and from 21.4\% to 5.0\%. With $L = 50$ the equalizer fails: the EVM rises to 69.4\% and 38.4\% and the BER to 0.25 and 0.19, worse than without equalization. The same 60 pilots now estimate 50 taps, so LS has only 10 more equations than unknowns, fits the noise, and the estimated channel and its inverse are mostly noise (Step 10). So the errors at 1.5 m came from multipath spanning a few symbols, and $L$ between 5 and 10 is enough.
+    \item We used the tuned filter and ZF with $L = 1$, 2, 3, 5, 10, 40 and 50 (\cref{tab:zf-psk,fig:rx-psk-zf}). With $L = 1$ the equalizer is a single complex gain, so it only corrects amplitude and phase, and the errors stay. From $L = 3$ for 16-PSK and $L = 5$ for 32-PSK there are no errors, and at $L = 10$ the EVM drops from 18.5\% to 9.1\% and from 21.4\% to 5.0\%. With $L = 40$ the errors come back (BER 0.0150 and 0.0093) and the EVM rises to 14.1\% and 6.6\%, and with $L = 50$ the equalizer fails: the EVM rises to 69.4\% and 38.4\% and the BER to 0.25 and 0.19, worse than without equalization. The same 60 pilots now estimate 40 or 50 taps, so LS has only 20 or 10 more equations than unknowns, fits the noise, and the estimated channel and its inverse are mostly noise (Step 10). So the errors at 1.5 m came from multipath spanning a few symbols, and $L$ between 5 and 10 is enough.
 
     \begin{table}[H]
         \centering
@@ -199,7 +199,7 @@ E = 1 ./ H; % Zero Forcing (ZF) Channel Equalizer.
     \begin{figure}[H]
         \centering
         \fig{\linewidth}{figures/B/rx_psk_zf.pdf}
-        \caption{Received 16-PSK and 32-PSK constellations at 1.5 m without equalization and with ZF for $L = 1$, 3, 10 and 50.}
+        \caption{Received 16-PSK and 32-PSK constellations at 1.5 m without equalization and with ZF for $L = 1$, 3, 10, 40 and 50.}
         \label{fig:rx-psk-zf}
     \end{figure}
 
@@ -229,11 +229,11 @@ E = conj(H) ./ (abs(H).^2 + sigma2 / Ps); % Minimum Mean Square Error (MMSE) Equ
     \begin{figure}[H]
         \centering
         \fig{\linewidth}{figures/B/rx_psk_mmse.pdf}
-        \caption{Received 16-PSK and 32-PSK constellations at 1.5 m without equalization and with MMSE for $L = 1$, 3, 10 and 50.}
+        \caption{Received 16-PSK and 32-PSK constellations at 1.5 m without equalization and with MMSE for $L = 1$, 3, 10, 40 and 50.}
         \label{fig:rx-psk-mmse}
     \end{figure}
 
-    \item For 16-QAM and 32-QAM (\cref{tab:eq-qam,fig:rx-qam-eq}), the equalizer also corrects the amplitude, so the symbols no longer need to be scaled before \texttt{qamdemod()}. The errors disappear from $L = 3$ for 16-QAM and $L = 2$ for 32-QAM, and at $L = 10$ the EVM drops from 23.2\% to 9.9\% (ZF) and 9.7\% (MMSE) for 16-QAM, and from 13.8\% to 6.0\% for 32-QAM. At $L = 50$ both equalizers fail as for M-PSK, with a BER of 0.36--0.37 for 16-QAM and 0.21 for 32-QAM. As for M-PSK, ZF and MMSE are almost the same.
+    \item For 16-QAM and 32-QAM (\cref{tab:eq-qam,fig:rx-qam-eq}), the equalizer also corrects the amplitude, so the symbols no longer need to be scaled before \texttt{qamdemod()}. The errors disappear from $L = 3$ for 16-QAM and $L = 2$ for 32-QAM, and at $L = 10$ the EVM drops from 23.2\% to 9.9\% (ZF) and 9.7\% (MMSE) for 16-QAM, and from 13.8\% to 6.0\% for 32-QAM. At $L = 40$ the errors come back (BER 0.0117 and 0.0108 for 16-QAM, 0.0007 for 32-QAM) and at $L = 50$ both equalizers fail as for M-PSK, with a BER of 0.36--0.37 for 16-QAM and 0.21 for 32-QAM. As for M-PSK, ZF and MMSE are almost the same.
 
     \begin{table}[H]
         \centering
