@@ -49,7 +49,7 @@ end
 
 psk = [1 2]; qam = [3 4]; % Rows of caps.
 filt = {false, NaN, NaN, "No filter"; true, NaN, NaN, "Filter"};
-eqL  = @(eq) {true, NaN, NaN, "No equalizer"; true, eq, 1, upper(eq) + ", L = 1"; true, eq, 3, upper(eq) + ", L = 3"; true, eq, 10, upper(eq) + ", L = 10"};
+eqL  = @(eq) {true, NaN, NaN, "No equalizer"; true, eq, 1, upper(eq) + ", L = 1"; true, eq, 3, upper(eq) + ", L = 3"; true, eq, 10, upper(eq) + ", L = 10"; true, eq, 20, upper(eq) + ", L = 20"};
 
 %Q4%%%%%
 plotGrid(res, caps, psk, filt, "../figures/A/rx_psk_filter.pdf");
